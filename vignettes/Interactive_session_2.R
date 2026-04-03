@@ -158,29 +158,6 @@ ggsave(
 )
 message("Saved fit plot: ", plot_path)
 
-# ----- 6. Append algorithm performance row -----
-perf_path <- file.path(root, "vignettes", "algorithm_performance.csv")
-perf_row <- data.frame(
-    algorithm = "random_search",
-    alpha     = best$alpha,
-    beta      = best$beta,
-    gamma     = best$gamma,
-    delta     = best$delta,
-    loss      = best$loss,
-    runtime   = runtime_sec
-)
-if (file.exists(perf_path) && file.info(perf_path)$size > 0L) {
-    existing <- utils::read.csv(perf_path, stringsAsFactors = FALSE)
-    merged <- rbind(existing, perf_row)
-} else {
-    merged <- perf_row
-}
-for (v in c("alpha", "beta", "gamma", "delta", "loss", "runtime")) {
-    if (v %in% names(merged)) merged[[v]] <- signif(as.numeric(merged[[v]]), 15)
-}
-utils::write.csv(merged, file = perf_path, row.names = FALSE)
-message("Appended performance row to ", perf_path, " (runtime_sec=", signif(runtime_sec, 6), ").")
-
 # =============================================================================
 # Plots: point estimate of best parameters
 # =============================================================================
