@@ -1,3 +1,6 @@
+# =============================================================================
+# Interactive Session 3: Markov Chain Monte Carlo (MCMC)
+# =============================================================================
 # Lotka-Volterra: Metropolis–Hastings MCMC targeting π(θ|y) ∝ L(y|θ) π(θ)
 # with Gaussian observation model (log-likelihood via R/ODE_Gaussian_loglikelihood.R)
 # and the same uniform priors as vignettes/LV_random_search.R.
@@ -289,19 +292,132 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
 }
 
 # =============================================================================
-# Example stub (toy Gaussian): not run
+# Plots: posterior predictive population fit + pooled posterior density
 # =============================================================================
-if (FALSE) {
-    set.seed(1)
-    y_obs <- stats::rnorm(20, mean = 2.5, sd = 1)
-    log_lik_toy <- function(theta) sum(stats::dnorm(y_obs, mean = theta, sd = 1, log = TRUE))
-    log_pi_toy <- function(theta) stats::dnorm(theta, mean = 0, sd = 10, log = TRUE)
-    fit_toy <- mcmc_metropolis_hastings(
-        log_lik_toy,
-        log_pi_toy,
-        theta_init = 0,
-        n_iter = 3000L,
-        proposal_sd = 1
+source(file.path(root, "R", "ODE_solver_at_time.R"))
+
+burn_in_plot <- 1000L
+d_post <- chain_rows[chain_rows$iteration > burn_in_plot, , drop = FALSE]
+rownames(d_post) <- NULL
+n_draw <- nrow(d_post)
+N_meta <- as.numeric(meta$N[1])
+
+dat <- obs[, c("time", "rabbit", "fox")]
+dat <- dat[order(dat$time), , drop = FALSE]
+t_obs <- dat$time
+i0 <- which.min(abs(t_obs - 0))
+stopifnot(abs(t_obs[i0]) < 1e-8)
+initial_state_pop <- list(
+    rabbit = as.numeric(dat$rabbit[i0]),
+    fox    = as.numeric(dat$fox[i0])
+)
+
+run_ode_for_draw <- function(i) {
+    parms <- list(
+        alpha = as.numeric(d_post[["alpha"]][i]),
+        beta  = as.numeric(d_post[["beta"]][i]),
+        gamma = as.numeric(d_post[["gamma"]][i]),
+        delta = as.numeric(d_post[["delta"]][i]),
+        N     = N_meta
     )
-    message("Toy example acceptance rate = ", fit_toy$acceptance_rate)
+    lv_populations_at_time(parms, times = t_obs, initial_state = initial_state_pop)
 }
+
+message("Integrating ODE for ", n_draw, " posterior draws (burn-in = ", burn_in_plot, ") ...")
+t0_pop <- proc.time()
+n_cores_pop <- max(1L, parallel::detectCores() - 1L)
+if (.Platform$OS.type != "windows" && n_draw > 4L && n_cores_pop > 1L) {
+    preds <- parallel::mclapply(
+        seq_len(n_draw), run_ode_for_draw,
+        mc.cores = n_cores_pop, mc.preschedule = TRUE, mc.set.seed = FALSE
+    )
+} else {
+    preds <- lapply(seq_len(n_draw), run_ode_for_draw)
+}
+runtime_ode <- as.numeric((proc.time() - t0_pop)["elapsed"])
+message("ODE integration wall time (s): ", signif(runtime_ode, 5))
+
+n_t <- length(t_obs)
+rabbit_mat <- t(vapply(preds, function(z) as.numeric(z$rabbit), numeric(n_t)))
+fox_mat    <- t(vapply(preds, function(z) as.numeric(z$fox),    numeric(n_t)))
+
+rabbit_mean <- colMeans(rabbit_mat)
+fox_mean    <- colMeans(fox_mat)
+rabbit_lo <- apply(rabbit_mat, 2L, quantile, probs = 0.025, names = FALSE)
+rabbit_hi <- apply(rabbit_mat, 2L, quantile, probs = 0.975, names = FALSE)
+fox_lo    <- apply(fox_mat, 2L, quantile, probs = 0.025, names = FALSE)
+fox_hi    <- apply(fox_mat, 2L, quantile, probs = 0.975, names = FALSE)
+
+summ <- data.frame(
+    time = t_obs, rabbit_mean = rabbit_mean, rabbit_lo = rabbit_lo,
+    rabbit_hi = rabbit_hi, fox_mean = fox_mean, fox_lo = fox_lo, fox_hi = fox_hi
+)
+
+col_rabbit <- "#EFC000"
+col_fox    <- "#BC3C29"
+
+summ_all <- rbind(
+    data.frame(species = "Rabbit", time = summ$time, lo = summ$rabbit_lo, hi = summ$rabbit_hi),
+    data.frame(species = "Fox", time = summ$time, lo = summ$fox_lo, hi = summ$fox_hi)
+)
+summ_all$species <- factor(summ_all$species, levels = c("Rabbit", "Fox"))
+
+obs_df <- rbind(
+    data.frame(time = dat$time, species = "Rabbit", count = dat$rabbit),
+    data.frame(time = dat$time, species = "Fox",    count = dat$fox)
+)
+obs_df$species <- factor(obs_df$species, levels = c("Rabbit", "Fox"))
+
+fit_df <- rbind(
+    data.frame(time = summ$time, species = "Rabbit", count = summ$rabbit_mean),
+    data.frame(time = summ$time, species = "Fox",    count = summ$fox_mean)
+)
+fit_df$species <- factor(fit_df$species, levels = c("Rabbit", "Fox"))
+
+p_pop <- ggplot() +
+    geom_ribbon(
+        data = summ_all,
+        aes(x = time, ymin = lo, ymax = hi, fill = species),
+        alpha = 0.2
+    ) +
+    geom_line(
+        data = fit_df,
+        aes(x = time, y = count, colour = species, group = species),
+        linewidth = 1.2
+    ) +
+    geom_point(
+        data = obs_df,
+        aes(x = time, y = count, colour = species),
+        size = 7, stroke = 0.3
+    ) +
+    scale_fill_manual(values = c(Rabbit = col_rabbit, Fox = col_fox), guide = "none") +
+    scale_colour_manual(values = c(Rabbit = col_rabbit, Fox = col_fox), name = NULL) +
+    labs(x = "Time", y = "Count") +
+    theme_bw(base_size = 20) +
+    theme(
+        plot.title = element_blank(), panel.grid = element_blank(),
+        legend.position = c(0.98, 0.98), legend.justification = c(1, 1),
+        legend.background = element_rect(fill = "white", colour = "grey35", linewidth = 0.5),
+        legend.margin = margin(6, 8, 6, 8)
+    )
+
+ggsave(file.path(out_dir, "lv_mcmc_population_fit_ci.png"),
+       p_pop, width = 10, height = 6, dpi = 160, bg = "white")
+message("Saved population fit CI to ", out_dir)
+
+# ---- Posterior density ----
+long_post <- do.call(rbind, lapply(par_names, function(p) {
+    data.frame(parameter = p, value = d_post[[p]], stringsAsFactors = FALSE)
+}))
+long_post$parameter <- factor(long_post$parameter, levels = par_names)
+
+p_pooled <- ggplot(long_post, aes(x = value)) +
+    geom_density(fill = "#3182BD", alpha = 0.45, colour = "#08519C", linewidth = 0.6) +
+    facet_wrap(~parameter, scales = "free_y", ncol = 2) +
+    coord_cartesian(xlim = c(0, 2)) +
+    labs(x = NULL, y = "Density") +
+    theme_bw(base_size = 13)
+
+ggsave(file.path(out_dir, "lv_mcmc_posterior_pooled.png"),
+       p_pooled, width = 6, height = 4, dpi = 300, bg = "white")
+message("Saved pooled posterior density to ", out_dir)

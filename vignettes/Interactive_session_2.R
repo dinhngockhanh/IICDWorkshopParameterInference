@@ -1,3 +1,6 @@
+# =============================================================================
+# Interactive Session 2: Random Search
+# =============================================================================
 # Lotka-Volterra parameter search via uniform random sampling and ODE SSE loss.
 # Run from repository root:
 #   Rscript vignettes/LV_random_search.R
@@ -177,3 +180,33 @@ for (v in c("alpha", "beta", "gamma", "delta", "loss", "runtime")) {
 }
 utils::write.csv(merged, file = perf_path, row.names = FALSE)
 message("Appended performance row to ", perf_path, " (runtime_sec=", signif(runtime_sec, 6), ").")
+
+# =============================================================================
+# Plots: point estimate of best parameters
+# =============================================================================
+param_names <- c("alpha", "beta", "gamma", "delta")
+
+long_pe <- data.frame(
+    parameter = factor(param_names, levels = param_names),
+    value     = as.numeric(best[1, param_names])
+)
+
+p_pe <- ggplot(long_pe, aes(x = value)) +
+    geom_vline(aes(xintercept = value), colour = "#08519C", linewidth = 1.2) +
+    geom_point(aes(y = 0), colour = "#08519C", size = 4) +
+    geom_text(
+        aes(y = 0, label = sprintf("%.3f", value)),
+        colour = "#08519C", vjust = -1.5, size = 4.5, fontface = "bold"
+    ) +
+    facet_wrap(~parameter, scales = "free_y", ncol = 2) +
+    coord_cartesian(xlim = c(0, 2)) +
+    labs(x = NULL, y = "Point estimate") +
+    theme_bw(base_size = 13) +
+    theme(
+        axis.text.y  = element_blank(),
+        panel.grid   = element_blank()
+    )
+
+ggsave(file.path(out_dir, "lv_random_search_point_estimate.png"),
+       p_pe, width = 6, height = 4, dpi = 300, bg = "white")
+message("Saved point estimate plot to ", out_dir)
