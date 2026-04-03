@@ -52,6 +52,3 @@ source/
 temp_scripts/
 
 bin/
-
-vignettes/MCMC/
-vignettes/random_search/
