@@ -6,6 +6,7 @@ sapply(files_sources, source) #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 setwd( #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     "/Users/kndinh/RESEARCH AND EVERYTHING/Projects/GITHUB/IICD_Workshop_Parameter_Inference/vignettes"
 ) #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+library(ggplot2)
 data <- read.csv( #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     "/Users/kndinh/RESEARCH AND EVERYTHING/Projects/GITHUB/IICD_Workshop_Parameter_Inference/data/data.csv"
 ) #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -14,14 +15,14 @@ initial_state <- list(
     fox = 300
 )
 parameters <- list(
-    alpha = 1.0,
-    beta = 0.5,
-    gamma = 1.0,
-    delta = 0.5
+    alpha = 2.0,
+    beta = 4.0,
+    gamma = 0.8,
+    delta = 1.7
 )
 predicted_populations <- Lotka_Volterra_ODE_solver(
     parameters = parameters,
-    times = data$time,
+    times = seq(0, 14, by = 0.1),
     initial_state = initial_state
 )
 color_rabbit <- "#EFC000"
@@ -49,7 +50,7 @@ p_fit <- ggplot() +
         stroke = 0.3
     ) +
     scale_colour_manual(
-        values = c(Rabbit = color_rabbit, Fox = col_fox),
+        values = c(Rabbit = color_rabbit, Fox = color_fox),
         name = NULL
     ) +
     labs(x = "Time", y = "Count") +
