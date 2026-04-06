@@ -5,7 +5,7 @@
 This library can be installed with
 
 ```{r}
-devtools::install_github("dinhngockhanh/IICD_Workshop_Parameter_Inference")
+devtools::install_github("dinhngockhanh/IICDWorkshopParameterInference")
 ```
 
 ##  Vignettes
