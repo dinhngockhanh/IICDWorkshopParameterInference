@@ -2,7 +2,7 @@ library(IICDWorkshopParameterInference)
 library(ggplot2)
 data <- read.csv(system.file("extdata", "data.csv", package = "IICDWorkshopParameterInference"))
 set.seed(1)
-N_particles <- 10000
+N_particles <- 12500
 N_burn_in <- 2000
 Gaussian_noise_sd <- 200
 Gaussian_perturbation_sd <- 0.5
