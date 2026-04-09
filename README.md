@@ -27,6 +27,10 @@ library(abcsmcrf)
 library(IICDWorkshopParameterInference)
 ```
 
+##  Presentation
+
+The slides for this Workshop can be accessed at https://github.com/dinhngockhanh/IICDWorkshopParameterInference/blob/main/presentation.pdf.
+
 ##  References
 1.  Dinh KN, Liu C, Xiang Z, Liu Z, Tavaré S. Approximate Bayesian computation sequential Monte Carlo via random forests. Stat Comput 35, 219 (2025). https://doi.org/10.1007/s11222-025-10748-x
 2.  Sisson SA, Fan Y, Beaumont M, editors. Handbook of approximate Bayesian computation. CRC press; 2018 Sep 3. https://doi.org/10.1201/9781315117195
