@@ -1,4 +1,4 @@
-#   IICD Parameter Estimation Workshop: Parameter Inference Approaches for Data-Driven Mathematical Modeling
+#   IICD Workshop: Parameter Inference Approaches for Data-Driven Mathematical Modeling
 
 ##  Installation
 
